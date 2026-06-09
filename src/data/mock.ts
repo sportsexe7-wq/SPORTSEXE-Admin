@@ -3,7 +3,7 @@ import type {
 } from '@/types'
 
 const now = new Date().toISOString()
-const sizes = ['S', 'M', 'L', 'XL', 'XXL'] as const
+const sizes = ['S', 'M', 'L', 'XL'] as const
 
 export let products: Product[] = [
   {
@@ -126,6 +126,56 @@ export let products: Product[] = [
     tags: ['euro', 'home'], featured: false, trending: false, bestSeller: false,
     playerEdition: false, retroEdition: false, rating: 4.5, reviewCount: 76, createdAt: now, updatedAt: now,
   },
+  {
+    id: '13', title: 'Pro Football Socks — Long', slug: 'pro-football-socks-long',
+    description: 'Premium long football socks with cushioned sole, moisture-wicking fabric and anti-slip grip. Designed for 90 minutes of intense play.',
+    shortDescription: 'Cushioned long match socks',
+    price: 499, salePrice: 399, stock: 120, category: 'Accessories', subCategory: 'Socks',
+    team: '', league: '', country: '', season: '2024',
+    sizes: [...sizes], images: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80'],
+    tags: ['accessories', 'socks', 'football'], featured: false, trending: true, bestSeller: true,
+    playerEdition: false, retroEdition: false, rating: 4.3, reviewCount: 58, createdAt: now, updatedAt: now,
+  },
+  {
+    id: '14', title: 'Pro Shin Guards', slug: 'pro-shin-guards',
+    description: 'Lightweight EVA foam shin guards with anatomical fit. Provides superior protection without restricting movement. Fits inside long socks.',
+    shortDescription: 'Lightweight EVA protection',
+    price: 699, salePrice: 549, stock: 80, category: 'Accessories', subCategory: 'Shin Guards',
+    team: '', league: '', country: '', season: '2024',
+    sizes: ['S', 'M', 'L', 'XL'], images: ['https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80'],
+    tags: ['accessories', 'shin-guards', 'protection'], featured: false, trending: false, bestSeller: false,
+    playerEdition: false, retroEdition: false, rating: 4.1, reviewCount: 34, createdAt: now, updatedAt: now,
+  },
+  {
+    id: '15', title: 'Mumbai Indians IPL Jersey 2024', slug: 'mumbai-indians-ipl-jersey-2024',
+    description: 'Official-style Mumbai Indians IPL jersey. Classic blue with gold trim, premium polyester fabric with Dri-FIT technology.',
+    shortDescription: 'MI IPL official-style jersey',
+    price: 1799, salePrice: 1499, stock: 45, category: 'IPL', subCategory: 'Home',
+    team: 'Mumbai Indians', league: 'IPL', country: 'India', season: '2024',
+    sizes: [...sizes], images: ['https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&q=80'],
+    tags: ['ipl', 'cricket', 'mumbai'], featured: true, trending: true, bestSeller: true,
+    playerEdition: false, retroEdition: false, rating: 4.6, reviewCount: 112, createdAt: now, updatedAt: now,
+  },
+  {
+    id: '16', title: 'Chennai Super Kings IPL Jersey 2024', slug: 'chennai-super-kings-ipl-jersey-2024',
+    description: 'Official-style CSK IPL jersey. Iconic yellow with navy accents. Lightweight and breathable for match days.',
+    shortDescription: 'CSK IPL official-style jersey',
+    price: 1799, salePrice: 1499, stock: 50, category: 'IPL', subCategory: 'Home',
+    team: 'Chennai Super Kings', league: 'IPL', country: 'India', season: '2024',
+    sizes: [...sizes], images: ['https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80'],
+    tags: ['ipl', 'cricket', 'chennai', 'csk'], featured: true, trending: true, bestSeller: true,
+    playerEdition: false, retroEdition: false, rating: 4.7, reviewCount: 143, createdAt: now, updatedAt: now,
+  },
+  {
+    id: '17', title: 'World Cup Fan Flag — Argentina', slug: 'world-cup-fan-flag-argentina',
+    description: 'Large Argentina national flag for fan zones and match watching. Durable polyester, vivid print, with eyelets for hanging.',
+    shortDescription: 'Argentina supporter flag 3×5 ft',
+    price: 399, stock: 200, category: 'Flags', subCategory: 'Fan Flags',
+    team: 'Argentina', league: 'International', country: 'Argentina', season: '2024',
+    sizes: ['S', 'M', 'L', 'XL'], images: ['https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=800&q=80'],
+    tags: ['flags', 'argentina', 'fan'], featured: false, trending: true, bestSeller: false,
+    playerEdition: false, retroEdition: false, rating: 4.2, reviewCount: 27, createdAt: now, updatedAt: now,
+  },
 ]
 
 export let banners: Banner[] = [
@@ -189,7 +239,10 @@ export let categories: Category[] = [
   { id: '4', name: 'Retro', slug: 'retro', type: 'retro', productCount: 1 },
   { id: '5', name: 'Training Kits', slug: 'training-kits', type: 'training-kits', productCount: 1 },
   { id: '6', name: 'Player Edition', slug: 'player-edition', type: 'player-edition', productCount: 1 },
-  { id: '7', name: 'New Arrivals', slug: 'new-arrivals', type: 'new-arrivals', productCount: 14 },
+  { id: '7', name: 'New Arrivals', slug: 'new-arrivals', type: 'new-arrivals', productCount: 17 },
+  { id: '8', name: 'Accessories', slug: 'accessories', type: 'accessories', productCount: 2 },
+  { id: '9', name: 'IPL', slug: 'ipl', type: 'ipl', productCount: 2 },
+  { id: '10', name: 'Flags', slug: 'flags', type: 'flags', productCount: 1 },
 ]
 
 export let coupons: Coupon[] = [

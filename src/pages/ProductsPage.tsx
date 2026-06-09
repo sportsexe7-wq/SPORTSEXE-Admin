@@ -15,7 +15,7 @@ const emptyProduct = (): Partial<Product> => ({
   title: '', slug: '', description: '', shortDescription: '',
   price: 0, stock: 0, category: 'Clubs', subCategory: 'Home',
   team: '', league: '', country: '', season: '2024/25',
-  sizes: ['S', 'M', 'L', 'XL', 'XXL'], images: [], tags: [],
+  sizes: ['S', 'M', 'L', 'XL'], images: [], tags: [],
   featured: false, trending: false, bestSeller: false,
   playerEdition: false, retroEdition: false,
 })

@@ -1,168 +1,210 @@
 import type { Product, Banner, Category, Coupon, MediaItem, StoreSettings, OrderStatus } from '@/types'
-import { delay } from './api'
-import * as db from '@/data/mock'
+import {
+  collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, setDoc,
+  type DocumentSnapshot,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromDoc<T>(snap: DocumentSnapshot<any>): T {
+  return { id: snap.id, ...snap.data() } as T
+}
+
+const col = (name: string) => collection(db, name)
 
 export const adminService = {
-  // Dashboard
+  // ── Dashboard ──────────────────────────────────────────────
   async getDashboard() {
-    await delay()
-    return db.getDashboardStats()
+    const [productsSnap, ordersSnap] = await Promise.all([
+      getDocs(col('products')),
+      getDocs(col('orders')),
+    ])
+    const products = productsSnap.docs.map((d) => fromDoc<Product>(d))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orders = ordersSnap.docs.map((d) => fromDoc<any>(d))
+
+    const revenue = orders
+      .filter((o) => o.status === 'delivered')
+      .reduce((sum: number, o) => sum + (o.total ?? 0), 0)
+
+    return {
+      totalOrders: orders.length,
+      revenue,
+      pendingOrders: orders.filter((o) => o.status === 'pending').length,
+      deliveredOrders: orders.filter((o) => o.status === 'delivered').length,
+      topSellingJerseys: [] as { product: Product; sold: number }[],
+      lowStockAlerts: products.filter((p) => p.stock < 10),
+      recentOrders: orders.slice(0, 5),
+    }
   },
 
-  // Products
-  async getProducts() { await delay(); return [...db.products] },
-  async getProduct(id: string) { await delay(); return db.products.find((p) => p.id === id) ?? null },
-  async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) {
-    await delay()
-    const product: Product = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    db.products.push(product)
-    return product
+  // ── Products ───────────────────────────────────────────────
+  async getProducts(): Promise<Product[]> {
+    const snap = await getDocs(col('products'))
+    return snap.docs.map((d) => fromDoc<Product>(d))
   },
-  async updateProduct(id: string, data: Partial<Product>) {
-    await delay()
-    const idx = db.products.findIndex((p) => p.id === id)
-    if (idx === -1) throw new Error('Not found')
-    db.products[idx] = { ...db.products[idx], ...data, updatedAt: new Date().toISOString() }
-    return db.products[idx]
+
+  async getProduct(id: string): Promise<Product | null> {
+    const snap = await getDoc(doc(db, 'products', id))
+    return snap.exists() ? fromDoc<Product>(snap) : null
   },
-  async deleteProduct(id: string) {
-    await delay()
-    const idx = db.products.findIndex((p) => p.id === id)
-    if (idx >= 0) db.products.splice(idx, 1)
+
+  async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
+    const now = new Date().toISOString()
+    const ref = await addDoc(col('products'), { ...data, createdAt: now, updatedAt: now })
+    return { ...data, id: ref.id, createdAt: now, updatedAt: now } as Product
   },
-  async duplicateProduct(id: string) {
-    await delay()
-    const original = db.products.find((p) => p.id === id)
+
+  async updateProduct(id: string, data: Partial<Product>): Promise<Product> {
+    const updates = { ...data, updatedAt: new Date().toISOString() }
+    await updateDoc(doc(db, 'products', id), updates)
+    return { id, ...updates } as Product
+  },
+
+  async deleteProduct(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'products', id))
+  },
+
+  async duplicateProduct(id: string): Promise<Product> {
+    const original = await this.getProduct(id)
     if (!original) throw new Error('Not found')
-    const copy: Product = {
-      ...original,
-      id: crypto.randomUUID(),
+    const { id: _, ...rest } = original
+    return this.createProduct({
+      ...rest,
       title: `${original.title} (Copy)`,
       slug: `${original.slug}-copy-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    db.products.push(copy)
-    return copy
+    })
   },
 
-  // Banners
-  async getBanners() { await delay(); return [...db.banners] },
-  async createBanner(data: Omit<Banner, 'id'>) {
-    await delay()
-    const banner = { ...data, id: crypto.randomUUID() }
-    db.banners.push(banner)
-    return banner
-  },
-  async updateBanner(id: string, data: Partial<Banner>) {
-    await delay()
-    const idx = db.banners.findIndex((b) => b.id === id)
-    if (idx === -1) throw new Error('Not found')
-    db.banners[idx] = { ...db.banners[idx], ...data }
-    return db.banners[idx]
-  },
-  async deleteBanner(id: string) {
-    await delay()
-    const idx = db.banners.findIndex((b) => b.id === id)
-    if (idx >= 0) db.banners.splice(idx, 1)
+  // ── Banners ────────────────────────────────────────────────
+  async getBanners(): Promise<Banner[]> {
+    const snap = await getDocs(col('banners'))
+    return snap.docs.map((d) => fromDoc<Banner>(d))
   },
 
-  // Orders
-  async getOrders(status?: OrderStatus) {
-    await delay()
-    return status ? db.orders.filter((o) => o.status === status) : [...db.orders]
-  },
-  async getOrder(id: string) { await delay(); return db.orders.find((o) => o.id === id) ?? null },
-  async updateOrderStatus(id: string, status: OrderStatus) {
-    await delay()
-    const order = db.orders.find((o) => o.id === id)
-    if (!order) throw new Error('Not found')
-    order.status = status
-    order.updatedAt = new Date().toISOString()
-    return order
+  async createBanner(data: Omit<Banner, 'id'>): Promise<Banner> {
+    const ref = await addDoc(col('banners'), data)
+    return { ...data, id: ref.id }
   },
 
-  // Categories
-  async getCategories() { await delay(); return [...db.categories] },
-  async createCategory(data: Omit<Category, 'id' | 'productCount'>) {
-    await delay()
-    const cat = { ...data, id: crypto.randomUUID(), productCount: 0 }
-    db.categories.push(cat)
-    return cat
-  },
-  async updateCategory(id: string, data: Partial<Omit<Category, 'id' | 'productCount'>>) {
-    await delay()
-    const idx = db.categories.findIndex((c) => c.id === id)
-    if (idx === -1) throw new Error('Not found')
-    db.categories[idx] = { ...db.categories[idx], ...data }
-    return db.categories[idx]
-  },
-  async deleteCategory(id: string) {
-    await delay()
-    const idx = db.categories.findIndex((c) => c.id === id)
-    if (idx >= 0) db.categories.splice(idx, 1)
+  async updateBanner(id: string, data: Partial<Banner>): Promise<Banner> {
+    await updateDoc(doc(db, 'banners', id), data)
+    return { id, ...data } as Banner
   },
 
-  // Coupons
-  async getCoupons() { await delay(); return [...db.coupons] },
-  async createCoupon(data: Omit<Coupon, 'id' | 'usageCount'>) {
-    await delay()
-    const coupon = { ...data, id: crypto.randomUUID(), usageCount: 0 }
-    db.coupons.push(coupon)
-    return coupon
-  },
-  async updateCoupon(id: string, data: Partial<Coupon>) {
-    await delay()
-    const idx = db.coupons.findIndex((c) => c.id === id)
-    if (idx === -1) throw new Error('Not found')
-    db.coupons[idx] = { ...db.coupons[idx], ...data }
-    return db.coupons[idx]
-  },
-  async deleteCoupon(id: string) {
-    await delay()
-    const idx = db.coupons.findIndex((c) => c.id === id)
-    if (idx >= 0) db.coupons.splice(idx, 1)
+  async deleteBanner(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'banners', id))
   },
 
-  // Customers
-  async getCustomers(search?: string) {
-    await delay()
-    if (!search) return [...db.customers]
+  // ── Orders ─────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getOrders(status?: OrderStatus): Promise<any[]> {
+    const snap = await getDocs(col('orders'))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orders = snap.docs.map((d) => fromDoc<any>(d))
+    return status ? orders.filter((o) => o.status === status) : orders
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getOrder(id: string): Promise<any | null> {
+    const snap = await getDoc(doc(db, 'orders', id))
+    return snap.exists() ? fromDoc(snap) : null
+  },
+
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
+    await updateDoc(doc(db, 'orders', id), { status, updatedAt: new Date().toISOString() })
+  },
+
+  // ── Categories ─────────────────────────────────────────────
+  async getCategories(): Promise<Category[]> {
+    const snap = await getDocs(col('categories'))
+    return snap.docs.map((d) => fromDoc<Category>(d))
+  },
+
+  async createCategory(data: Omit<Category, 'id' | 'productCount'>): Promise<Category> {
+    const ref = await addDoc(col('categories'), { ...data, productCount: 0 })
+    return { ...data, id: ref.id, productCount: 0 }
+  },
+
+  async updateCategory(id: string, data: Partial<Omit<Category, 'id' | 'productCount'>>): Promise<Category> {
+    await updateDoc(doc(db, 'categories', id), data)
+    return { id, ...data } as Category
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'categories', id))
+  },
+
+  // ── Coupons ────────────────────────────────────────────────
+  async getCoupons(): Promise<Coupon[]> {
+    const snap = await getDocs(col('coupons'))
+    return snap.docs.map((d) => fromDoc<Coupon>(d))
+  },
+
+  async createCoupon(data: Omit<Coupon, 'id' | 'usageCount'>): Promise<Coupon> {
+    const ref = await addDoc(col('coupons'), { ...data, usageCount: 0 })
+    return { ...data, id: ref.id, usageCount: 0 }
+  },
+
+  async updateCoupon(id: string, data: Partial<Coupon>): Promise<Coupon> {
+    await updateDoc(doc(db, 'coupons', id), data)
+    return { id, ...data } as Coupon
+  },
+
+  async deleteCoupon(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'coupons', id))
+  },
+
+  // ── Customers ──────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getCustomers(search?: string): Promise<any[]> {
+    const snap = await getDocs(col('customers'))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customers = snap.docs.map((d) => fromDoc<any>(d))
+    if (!search) return customers
     const q = search.toLowerCase()
-    return db.customers.filter((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
-  },
-  async toggleBlockCustomer(id: string) {
-    await delay()
-    const customer = db.customers.find((c) => c.id === id)
-    if (!customer) throw new Error('Not found')
-    customer.blocked = !customer.blocked
-    return customer
+    return customers.filter(
+      (c) => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q),
+    )
   },
 
-  // Media
-  async getMedia(search?: string) {
-    await delay()
-    if (!search) return [...db.media]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async toggleBlockCustomer(id: string): Promise<any> {
+    const snap = await getDoc(doc(db, 'customers', id))
+    if (!snap.exists()) throw new Error('Not found')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customer = fromDoc<any>(snap)
+    await updateDoc(doc(db, 'customers', id), { blocked: !customer.blocked })
+    return { ...customer, blocked: !customer.blocked }
+  },
+
+  // ── Media ──────────────────────────────────────────────────
+  async getMedia(search?: string): Promise<MediaItem[]> {
+    const snap = await getDocs(col('media'))
+    const media = snap.docs.map((d) => fromDoc<MediaItem>(d))
+    if (!search) return media
     const q = search.toLowerCase()
-    return db.media.filter((m) => m.name.toLowerCase().includes(q))
-  },
-  async uploadMedia(file: { name: string; url: string; size: number }) {
-    await delay(500)
-    const item: MediaItem = { id: crypto.randomUUID(), ...file, createdAt: new Date().toISOString() }
-    db.media.push(item)
-    return item
-  },
-  async deleteMedia(id: string) {
-    await delay()
-    const idx = db.media.findIndex((m) => m.id === id)
-    if (idx >= 0) db.media.splice(idx, 1)
+    return media.filter((m) => m.name?.toLowerCase().includes(q))
   },
 
-  // Settings
-  async getSettings() { await delay(); return { ...db.settings } },
-  async updateSettings(data: Partial<StoreSettings>) {
-    await delay()
-    Object.assign(db.settings, data)
-    return db.settings
+  async uploadMedia(file: { name: string; url: string; size: number }): Promise<MediaItem> {
+    const item = { ...file, createdAt: new Date().toISOString() }
+    const ref = await addDoc(col('media'), item)
+    return { ...item, id: ref.id }
+  },
+
+  async deleteMedia(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'media', id))
+  },
+
+  // ── Settings ───────────────────────────────────────────────
+  async getSettings(): Promise<StoreSettings | null> {
+    const snap = await getDoc(doc(db, 'settings', 'store'))
+    return snap.exists() ? (snap.data() as StoreSettings) : null
+  },
+
+  async updateSettings(data: Partial<StoreSettings>): Promise<StoreSettings> {
+    await setDoc(doc(db, 'settings', 'store'), data, { merge: true })
+    return data as StoreSettings
   },
 }

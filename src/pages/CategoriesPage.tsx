@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import type { Category } from '@/types'
 
 const CATEGORY_TYPES = [
-  'clubs', 'countries', 'world-cup', 'retro', 'training-kits', 'player-edition', 'new-arrivals',
+  'clubs', 'countries', 'world-cup', 'retro', 'training-kits', 'player-edition', 'new-arrivals', 'accessories', 'ipl', 'flags',
 ] as const
 
 const emptyForm = () => ({ name: '', type: 'clubs' as Category['type'] })

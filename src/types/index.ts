@@ -1,4 +1,4 @@
-export type ProductSize = 'S' | 'M' | 'L' | 'XL' | 'XXL'
+export type ProductSize = 'S' | 'M' | 'L' | 'XL'
 
 export interface Product {
   id: string
@@ -84,7 +84,7 @@ export interface Category {
   id: string
   name: string
   slug: string
-  type: 'clubs' | 'countries' | 'world-cup' | 'retro' | 'training-kits' | 'player-edition' | 'new-arrivals'
+  type: 'clubs' | 'countries' | 'world-cup' | 'retro' | 'training-kits' | 'player-edition' | 'new-arrivals' | 'accessories' | 'ipl' | 'flags'
   image?: string
   productCount: number
 }
