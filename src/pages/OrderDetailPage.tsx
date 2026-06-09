@@ -74,7 +74,8 @@ export function OrderDetailPage() {
         <CardHeader><CardTitle>Order Items</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {order.items.map((item, i) => (
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {order.items.map((item: any, i: number) => (
               <div key={i} className="flex items-center gap-3">
                 <img src={item.image} alt="" className="h-14 w-12 rounded object-cover" />
                 <div className="flex-1">
