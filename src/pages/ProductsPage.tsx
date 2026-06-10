@@ -276,8 +276,8 @@ export function ProductsPage() {
               </select>
             </div>
 
-            {/* ── Pricing & stock ── */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* ── Pricing ── */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Price (₹)</Label>
                 <Input type="number" className="mt-1" value={editing.price ?? 0}
@@ -288,11 +288,35 @@ export function ProductsPage() {
                 <Input type="number" className="mt-1" value={editing.salePrice ?? ''}
                   onChange={(e) => setEditing({ ...editing, salePrice: Number(e.target.value) || undefined })} />
               </div>
-              <div>
-                <Label>Stock</Label>
-                <Input type="number" className="mt-1" value={editing.stock ?? 0}
-                  onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })} />
+            </div>
+
+            {/* ── Stock per size ── */}
+            <div>
+              <Label>Stock per Size</Label>
+              <div className="mt-1 grid grid-cols-4 gap-2">
+                {(['S', 'M', 'L', 'XL'] as const).map((size) => {
+                  const sizeStock = (editing as any).sizeStock ?? {}
+                  return (
+                    <div key={size}>
+                      <p className="mb-1 text-center text-xs font-semibold text-text-muted">{size}</p>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="text-center"
+                        value={sizeStock[size] ?? 0}
+                        onChange={(e) => {
+                          const updated = { ...sizeStock, [size]: Number(e.target.value) }
+                          const total = Object.values(updated).reduce((s: number, v) => s + (v as number), 0)
+                          setEditing({ ...editing, sizeStock: updated, stock: total } as any)
+                        }}
+                      />
+                    </div>
+                  )
+                })}
               </div>
+              <p className="mt-1.5 text-xs text-text-muted">
+                Total stock: <span className="font-semibold text-text">{editing.stock ?? 0}</span> (auto-calculated)
+              </p>
             </div>
 
             {/* ── Description ── */}
