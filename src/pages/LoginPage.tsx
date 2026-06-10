@@ -32,8 +32,9 @@ export function LoginPage() {
       setError('')
       await signIn(data.email, data.password)
       navigate('/')
-    } catch {
-      setError('Invalid email or password')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      setError(msg.includes('not an admin') ? 'Access denied — this account is not an admin.' : 'Invalid email or password')
     }
   }
 

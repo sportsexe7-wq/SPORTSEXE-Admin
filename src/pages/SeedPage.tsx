@@ -1,17 +1,26 @@
 import { useState } from 'react'
 import { setDoc, doc, getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { useAuth } from '@/contexts/AuthContext'
 import * as mock from '@/data/mock'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, AlertTriangle, Database } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Database, ShieldCheck } from 'lucide-react'
 
 type SeedStatus = 'idle' | 'running' | 'done' | 'error'
 
 export function SeedPage() {
+  const { user } = useAuth()
   const [status, setStatus] = useState<SeedStatus>('idle')
   const [log, setLog] = useState<string[]>([])
   const [hasData, setHasData] = useState<boolean | null>(null)
+  const [adminMsg, setAdminMsg] = useState('')
+
+  const makeAdmin = async () => {
+    if (!user) return
+    await setDoc(doc(db, 'admins', user.uid), { email: user.email, createdAt: new Date().toISOString() })
+    setAdminMsg(`✓ ${user.email} is now an admin.`)
+  }
 
   const checkExisting = async () => {
     const snap = await getDocs(collection(db, 'products'))
@@ -93,6 +102,26 @@ export function SeedPage() {
           One-time operation to populate Firestore with initial mock data.
         </p>
       </div>
+
+      {/* Admin role setup */}
+      <Card>
+        <CardContent className="space-y-3 p-6">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-brand" />
+            <h3 className="font-semibold">Grant Admin Access</h3>
+          </div>
+          <p className="text-sm text-text-muted">
+            Click below to register <span className="font-medium text-text">{user?.email}</span> as an admin.
+            Only admin-registered accounts can log into this panel.
+          </p>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={makeAdmin}>
+              Make me admin
+            </Button>
+            {adminMsg && <span className="text-sm font-medium text-green-500">{adminMsg}</span>}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="space-y-4 p-6">

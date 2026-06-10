@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function AuthGuard() {
-  const { user, loading } = useAuth()
+  const { user, isAdmin, loading } = useAuth()
 
   if (loading) {
     return (
@@ -12,6 +12,6 @@ export function AuthGuard() {
     )
   }
 
-  if (!user) return <Navigate to="/login" replace />
+  if (!user || !isAdmin) return <Navigate to="/login" replace />
   return <Outlet />
 }

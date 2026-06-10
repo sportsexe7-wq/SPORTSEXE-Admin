@@ -5,10 +5,12 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase'
 
 interface AuthContextValue {
   user: User | null
+  isAdmin: boolean
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -18,18 +20,38 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u)
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        const adminSnap = await getDoc(doc(db, 'admins', u.uid))
+        if (adminSnap.exists()) {
+          setUser(u)
+          setIsAdmin(true)
+        } else {
+          // Valid Firebase user but not an admin — sign them out immediately
+          await firebaseSignOut(auth)
+          setUser(null)
+          setIsAdmin(false)
+        }
+      } else {
+        setUser(null)
+        setIsAdmin(false)
+      }
       setLoading(false)
     })
     return unsub
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    const cred = await signInWithEmailAndPassword(auth, email, password)
+    const adminSnap = await getDoc(doc(db, 'admins', cred.user.uid))
+    if (!adminSnap.exists()) {
+      await firebaseSignOut(auth)
+      throw new Error('Access denied: not an admin account')
+    }
   }
 
   const signOut = async () => {
@@ -37,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )
